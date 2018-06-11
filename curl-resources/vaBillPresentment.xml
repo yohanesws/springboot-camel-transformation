@@ -1,0 +1,13 @@
+{
+        "ClientID": "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456",
+        "WSID": "12345",
+        "CompanyCode": "88855",
+        "BillID": "089912345678",
+        "EffectiveDate": "08112016164246",
+        "CustomerDetails": {
+                "Detail": {
+                        "Key": "card_number",
+                        "Value": "6019002514605965"
+                }
+        }
+}

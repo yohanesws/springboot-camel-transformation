@@ -1,0 +1,20 @@
+{
+        "ClientID": "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456",
+        "WSID": "12345",
+        "IsAck": "N",
+        "IsSwitching" : "P",
+        "CompanyCode": "88855",
+        "CompanyName": "SAKUKU",
+        "ProductName": "SAKUKU",
+        "BillID": "089912345678",
+        "TransactionID": "201611161059568800000000006879",
+        "AdminFee": "0.00",
+        "FlagMultiBill": "N",
+        "CustomerName": "Philip SubAccount",
+        "CustomerAccount": "00148794844",
+        "EffectiveDate": "16112016104719",
+        "CurrencyCode": "IDR",
+        "UserID": "SME95011",
+        "TotalAmount": "10000.00",
+        "Trailer": ["", ""]
+}

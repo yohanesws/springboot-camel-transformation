@@ -1,21 +1,18 @@
 package com.redhat.bcaapi;
 
-import javax.ws.rs.core.MediaType;
-
+import com.google.common.collect.ImmutableMap;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.servlet.CamelHttpTransportServlet;
+import org.apache.camel.http.common.HttpOperationFailedException;
 import org.apache.camel.impl.DefaultCamelContext;
-import org.apache.camel.model.rest.RestBindingMode;
-import org.apache.camel.model.rest.RestConstants;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.stereotype.Component;
 
 
@@ -48,67 +45,140 @@ public class BcaApiApplication {
 
             CamelContext context = new DefaultCamelContext();
 
+            // General error handler
+            onException(Exception.class)
+                    .handled(true)
+                    // use HTTP status 500 when we had a server side error
+                    .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(500))
+                    .setBody(simple(" { messageId: ${id}, timestamp: \"${date:now:dd/MMM/yyyy:HH:mm:ss Z}\" description: \"Report this messageId for escalation\""))
+                    .log("messageId: ${id}, timestamp: \"${date:now:dd/MMM/yyyy:HH:mm:ss Z}\", message: \"${exception.message}\"\n ${exception.stacktrace}");
 
-            // http://localhost:8080/camel/api-doc
-            restConfiguration().contextPath(contextPath) //
-                    .port(serverPort)
-                    .enableCORS(true)
-                    .apiContextPath("/api-doc")
-                    .apiProperty("api.title", "Test REST API")
-                    .apiProperty("api.version", "v1")
-                    .apiProperty("cors", "true") // cross-site
-                    .apiContextRouteId("doc-api")
-                    .component("servlet")
-                    .bindingMode(RestBindingMode.json)
-                    .dataFormatProperty("prettyPrint", "true");
-/**
- The Rest DSL supports automatic binding json/xml contents to/from
- POJOs using Camels Data Format.
- By default the binding mode is off, meaning there is no automatic
- binding happening for incoming and outgoing messages.
- You may want to use binding if you develop POJOs that maps to
- your REST services request and response types.
- */
+            // Passbooks Headers
+            from("servlet:///passbooks/headers")
+                    .doTry()
+                        .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
+                        .to("{{passbookHeadersEP}}?throwExceptionOnFailure=true")
+                        .process(new JsonResponseTranformers("$.OutputSchema", false))
+                    .endDoTry()
+                    .doCatch(HttpOperationFailedException.class)
+                        .choice()
+                            .when().simple("${exception.statusCode} == 404")
+                                .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
+                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(404))
+                                .setBody(simple("${exception.message}"))
+                            .otherwise()
+                                .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
+                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(500))
+                                .setBody(simple(""))
+                        .endChoice()
+                    .end();
 
-            rest("/api/").description("Teste REST Service")
-                    .id("api-route")
-                    .post("/bean")
-                    .produces(MediaType.APPLICATION_JSON)
-                    .consumes(MediaType.APPLICATION_JSON)
-//                .get("/hello/{place}")
-                    .bindingMode(RestBindingMode.auto)
-                    .type(MyBean.class)
-                    .enableCORS(true)
-//                .outType(OutBean.class)
-                    .to("direct:remoteService");
+            // BCA Login
+            from("servlet:///auth/Login")
+                    .process(new BcaLoginJsonRequestTranformers())
+                    .doTry()
+                        .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
+                        .to("{{bcaLoginEP}}?throwExceptionOnFailure=true")
+                        .process(new JsonResponseTranformers("$.OutputSchema.OutputMessage", false))
+                    .endDoTry()
+                    .doCatch(HttpOperationFailedException.class)
+                        .choice()
+                            .when().simple("${exception.statusCode} == 404")
+                                .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
+                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(404))
+                                .setBody(simple("${exception.message}"))
+                            .otherwise()
+                                .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
+                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(500))
+                                .setBody(simple(""))
+                        .endChoice()
+                    .end();
 
+            // Agreement Inquiry
+            from("servlet:///or-trx-agreement")
+                    .process(new AggreementInquiryRequestTranformers())
+                    .setHeader("NewHttpQuery", simple("${header.CamelHttpQuery}"))
+                    .doTry()
+                        .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
+                        .setHeader(Exchange.HTTP_METHOD, simple("GET"))
+                        .setHeader(Exchange.HTTP_QUERY, simple("${header.NewHttpQuery}"))
+                        .to("{{bcaLoginEP}}?throwExceptionOnFailure=true")
+                    .endDoTry()
+                    .doCatch(HttpOperationFailedException.class)
+                        .choice()
+                            .when().simple("${exception.statusCode} == 404")
+                                .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
+                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(404))
+                                .setBody(simple("${exception.message}"))
+                            .otherwise()
+                                .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
+                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(500))
+                                .setBody(simple(""))
+                        .endChoice()
+                    .end();
 
-            from("servlet://proxy?matchOnUriPrefix=true")
+              from("servlet:///vaBillPresent")
+                    .process(new Json2XmlReRequestTranformers())
+                    .doTry()
+                        .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
+                        .to("{{vaBillPresentmentEP}}?throwExceptionOnFailure=true")
+                        .process(new Xml2JsonResponseTranformers(
+                                "/soapenv:Envelope/soapenv:Body/va:BillPresentmentResponse/OutputSchema/*",
+                                ImmutableMap.of(
+                                        "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
+                                        "va", "http://esb.bca.com/VA"
+                                )))
+                    .endDoTry()
+                    .doCatch(HttpOperationFailedException.class)
+                        .choice()
+                            .when().simple("${exception.statusCode} == 404")
+                                .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
+                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(404))
+                                .setBody(simple("${exception.message}"))
+                            .otherwise()
+                                .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
+                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(500))
+                                .setBody(simple(""))
+                        .endChoice()
+                    .end();
+
+            from("servlet:///proxy?matchOnUriPrefix=true")
                     .to("direct:backendSystem");
 
             from( "direct:backendSystem")
-                    .removeHeaders("CamelHttp*")
-                    .setHeader(Exchange.HTTP_METHOD, constant("GET"))
-                    .setHeader(Exchange.CONTENT_TYPE, constant("application/json"))
-                    .to("http://www.mocky.io/v2/5185415ba171ea3a00704eed");
+                    .log("Request received.")
+                    .process(new JsonRequestTranformers())
+                    .doTry()
+                        .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
+                        //.to("http://www.mocky.io/v2/5b0580543200000b2aebf958")
+                        //.to("http://www.mocky.io/v2/5b056e29320000ea1cebf8cc")
+                        .to("http://www.mocky.io/v2/5b0598473200000b2aebf991?throwExceptionOnFailure=true")
+                        //.to("https://httpstat.us/500?throwExceptionOnFailure=true")
+                        .process(new JsonResponseTranformers("$.OutputSchema"))
+                    .endDoTry()
+                    .doCatch(HttpOperationFailedException.class)
+                        .choice()
+                            .when().simple("${exception.statusCode} == 404")
+                                .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
+                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(404))
+                                .setBody(simple("${exception.message}"))
+                            .otherwise()
+                                .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
+                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(500))
+                                .setBody(simple(""))
+                        .endChoice()
+                    .end();
 
-            from("direct:remoteService")
-                    .routeId("direct-route") // similar to bridgeEndpoint=true
-                    .tracing()
-                    .log(">>> ${body.id}")
-                    .log(">>> ${body.name}")
-//                .transform().simple("blue ${in.body.name}")
-                    .process(new Processor() {
-                        @Override
-                        public void process(Exchange exchange) throws Exception {
-                            MyBean bodyIn = (MyBean) exchange.getIn().getBody();
+            from("servlet:///health?matchOnUriPrefix=true").process(new Processor() {
+                public void process(Exchange exchange) throws Exception {
+                    String path = exchange.getIn().getHeader(Exchange.HTTP_PATH, String.class);
+                    exchange.getOut().setHeader(Exchange.CONTENT_TYPE, "text/plain" + "; charset=UTF-8");
+                    exchange.getOut().setHeader("Path", path);
+                    exchange.getOut().setBody("SUCCESS");
+                }
+            });
 
-                            ExampleServices.example(bodyIn);
 
-                            exchange.getIn().setBody(bodyIn);
-                        }
-                    })
-                    .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(201));
         }
     }
 }
