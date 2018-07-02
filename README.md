@@ -1,3 +1,5 @@
+export JAVA_HOME=`java_home -v 1.8`
+
 Run `mvn spring-boot:run`
 
 Test URL:
@@ -8,10 +10,17 @@ curl -kv     http://localhost:8080/camel/...
 Example:
 ```
 cd curl-resources
-curl -kv --header "Content-Type: application/json"   --request POST -H "X-XYZ-ClientID: 3FE00D67763F443582A2E97F27E7E8E1" -d @agreementInquiry.json http://localhost:8080/camel/or-trx-agreement
+curl -kv --header "Content-Type: application/json"  --request POST -H "X-XYZ-ClientID: 3FE00D67763F443582A2E97F27E7E8E1" -d @agreementInquiry.json http://localhost:8080/camel/or-trx-agreement
 
 ```
 
+## Build
+
+```
+mvn package -Dmaven.test.skip=true
+```
+
+## Info
 
 This project is trying to inline with Red Hat Fuse 7.0 components.
 https://access.redhat.com/articles/348423

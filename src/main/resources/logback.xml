@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <configuration>
 
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <appender name="INFO_STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <!-- encoders are assigned the type
              ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
         <encoder>
@@ -10,8 +10,12 @@
         </encoder>
     </appender>
 
-    <root level="debug">
-        <appender-ref ref="STDOUT" />
+    <logger name="com.redhat.bcaapi" additivity="false" level="DEBUG">
+        <appender-ref ref="INFO_STDOUT" />
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="INFO_STDOUT" />
     </root>
 
 </configuration>

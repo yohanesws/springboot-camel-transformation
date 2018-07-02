@@ -1,0 +1,85 @@
+#eForm-InquiryParentReferenceNumber
+curl -v http://localhost:8090/camel/eform/inquiry/E01CS6WW60 -H "X-BCA-ClientID: 3FE00D67763F443582A2E97F27E7E8E1"
+
+#eForm-InquiryChildReferenceNumber
+curl -v -X POST http://localhost:8090/camel/eForm/inquiry/ChildReferenceNumber/11ZYMJ64C \
+-H "X-BCA-ClientID: 3FE00D67763F443582A2E97F27E7E8E1" \
+-H "Content-Type: application/json"
+-d '{
+  "Parameters-NAMA_PENYETOR": "testing",
+  "NumberOfOutputFields": "2",
+  "OutputFields1": "NAMA_PENYETOR",
+  "OutputFields2": "NAMA_PENERIMA",
+  "Status": "IN_PROGRESS",
+  "CreatedDateIsDisplay": "Y",
+  "CreatedDateUnpagedSortOrder": "ASC"
+}'
+
+
+
+
+#OR Transaction Agreement-Save
+curl -v -X POST http://localhost:8090/camel/or-trx-agreement \
+-H "X-BCA-ClientID : 3FE00D67763F443582A2E97F27E7E8E1" \
+-H "Content-Type: application/json" \
+-d '{
+	"TxnAuthorization": "BN",
+	"TxnType": "",
+	"ReferenceNo": "",
+	"SenderAcctNo": "",
+	"SenderName": "",
+	"SenderAddress1": "",
+	"SenderAddress2": "",
+	"SenderAddress3": "",
+	"SenderPhoneNumber": "",
+	"ReceiverName": "",
+	"ReceiverAcctNo": "",
+	"OriginCountry": "",
+	"DestinationBank": "",
+	"CurrencyExchangeRate": "IDR",
+	"ExchangeRate": "12345678911",
+	"NominalCurrency": "",
+	"Nominal": "12345678911",
+	"ProvisionCurrency": "",
+	"Provision": "12345678911",
+	"FeeCurrency": "",
+	"Fee": "123456",
+	"TotalTxnIDR": "",
+	"TotalTxnValas": "",
+	"ValueToday": "",
+	"Status": "02",
+	"SenderBranch": "0001",
+	"ReceiverBranch": "9434",
+	"BanknotesCondition": "",
+	"InputUser": "BD05215",
+	"InputSpv": "BD05215"
+}'
+
+#OR Transaction Agreement-Update
+curl -v -X PUT http://localhost:8090/camel/or-trx-agreement \
+-H "X-BCA-ClientID : 3FE00D67763F443582A2E97F27E7E8E1" \
+-H "Content-Type: application/json" \
+-d '{
+    "ReferenceNo": "OR96417",
+    "Status": "02",
+    "InputUser": "BD05215"
+}'
+
+#OR Transaction Agreement-Inquiry
+curl -v -X POST http://localhost:8090/camel/or-trx-agreement/inquiry \
+-H "X-BCA-ClientID : 3FE00D67763F443582A2E97F27E7E8E1" \
+-H "Content-Type: application/json" \
+-d '{
+	"BranchCode": "0008",
+	"InputDate": "2018-02-02",
+	"InputTime": "09:33:36",
+	"PageNumber": "1",
+	"RowsPerPage": "5",
+	"Status": "01"
+}'
+
+##OR Transaction AgreementDetail-Inquiry
+curl -v  http://localhost:8090/camel/or-trx-agreement/detail/ABC123 \
+-H "X-BCA-ClientID : 3FE00D67763F443582A2E97F27E7E8E1"
+
+
