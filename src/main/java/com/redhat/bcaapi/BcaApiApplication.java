@@ -1,6 +1,7 @@
 package com.redhat.bcaapi;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.gson.stream.MalformedJsonException;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
@@ -54,12 +55,13 @@ public class BcaApiApplication {
             CamelContext context = new DefaultCamelContext();
 
             // General error handler
-            onException(Exception.class)
+            onException(Exception.class, MalformedJsonException.class)
                 .handled(true)
                 // use HTTP status 500 when we had a server side error
                 .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(500))
                 .setBody(simple(" { messageId: ${id}, timestamp: \"${date:now:dd/MMM/yyyy:HH:mm:ss Z}\" description: \"Report this messageId for escalation\""))
-                .log("messageId: ${id}, timestamp: \"${date:now:dd/MMM/yyyy:HH:mm:ss Z}\", message: \"${exception.message}\"\n ${exception.stacktrace}");
+                .log("messageId: ${id}, timestamp: \"${date:now:dd/MMM/yyyy:HH:mm:ss Z}\", message: \"${exception.message}\"\n ${exception.stacktrace}")
+            .end();
 
             // FutureBranch-Passbooks Headers
             from("servlet:///passbooks/headers")
@@ -221,14 +223,14 @@ public class BcaApiApplication {
                 .doTry()
                     .choice()
                     .when().simple("${header.CamelHttpMethod} == 'POST'")
-                        .process(new AggreementSaveRequestTranformers())
+                        .process(new AgreementSaveRequestTransformers())
                         //Move HTTP query info to new exchange header name since all CamelHttp exchange header will be removed.
                         .setHeader("NewHttpQuery", simple("${header.CamelHttpQuery}"))
                         .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
                         .setHeader(Exchange.HTTP_METHOD, simple("POST"))
                         .to("{{ORTransaction_AgreementSave_Endpoint}}?throwExceptionOnFailure=true")
                     .when().simple("${header.CamelHttpMethod} == 'PUT'")
-                        .process(new AggreementUpdateRequestTranformers())
+                        .process(new AgreementUpdateRequestTransformers())
                         .setHeader("NewHttpQuery", simple("${header.CamelHttpQuery}"))
                         .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
                         .setHeader(Exchange.HTTP_METHOD, simple("PUT"))
@@ -252,7 +254,7 @@ public class BcaApiApplication {
             // API path: POST /or-trx-agreement/inquiry/0008?Status=03 <-- TODO: Ask BCA. It is weird API design because BranchCode and Status is duplicated (in URL and JSON message)
             // Backend path: GET /or-trx-agreement/0008?Status=01&PageNumber=1&RowsPerPage=5&InputDate=2018-02-02&InputTime=09:33:36
             from("servlet:///or-trx-agreement/inquiry?matchOnUriPrefix=true")
-                .process(new AggreementInquiryRequestTranformers())
+                .process(new AgreementInquiryRequestTransformers())
                 //Move HTTP query info to new exchange header name since all CamelHttp exchange header will be removed.
                 .setHeader("NewHttpQuery", simple("${header.CamelHttpQuery}"))
                 .doTry()
@@ -281,7 +283,7 @@ public class BcaApiApplication {
             from("servlet:///or-trx-agreement/detail?matchOnUriPrefix=true&httpMethodRestrict=GET")
                 // This is similar to param "httpMethodRestrict=GET" but it will still response 200 (OK) to client
                 //.filter(header("Exchange.HTTP_METHOD").isEqualTo("GET"))
-                .process(new AggreementInquiryRequestTranformers())
+                .process(new AgreementInquiryRequestTransformers())
                 //Move HTTP query info to new exchange header name since all CamelHttp exchange header will be removed.
                 .setHeader("NewHttpQuery", simple("${header.CamelHttpQuery}"))
                 .doTry()

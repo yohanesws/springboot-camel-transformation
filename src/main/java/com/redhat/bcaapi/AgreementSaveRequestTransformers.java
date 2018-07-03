@@ -11,7 +11,7 @@ import java.io.StringReader;
 import java.net.URLEncoder;
 import java.util.Map;
 
-public class AggreementSaveRequestTranformers implements org.apache.camel.Processor {
+public class AgreementSaveRequestTransformers implements org.apache.camel.Processor {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Override

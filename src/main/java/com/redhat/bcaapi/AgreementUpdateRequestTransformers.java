@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.io.StringReader;
 import java.util.Map;
 
-public class AggreementUpdateRequestTranformers implements org.apache.camel.Processor {
+public class AgreementUpdateRequestTransformers implements org.apache.camel.Processor {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Override

@@ -10,7 +10,7 @@ import java.io.StringReader;
 import java.net.URLEncoder;
 import java.util.Map;
 
-public class AggreementInquiryRequestTranformers implements org.apache.camel.Processor {
+public class AgreementInquiryRequestTransformers implements org.apache.camel.Processor {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
