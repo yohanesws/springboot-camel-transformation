@@ -17,7 +17,7 @@ public class AggreementInquiryRequestTranformers implements org.apache.camel.Pro
     @Override
     public void process(Exchange exchange) throws Exception {
 
-        String branchCode = "";
+        String branchCode = ""; // value of this is come from JSON data and set into URL param
 
         String contentType = (String) exchange.getIn().getHeader(Exchange.CONTENT_TYPE);
         String httpMethod = (String) exchange.getIn().getHeader(Exchange.HTTP_METHOD);

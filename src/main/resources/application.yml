@@ -1,9 +1,11 @@
 server:
+  address: 0.0.0.0
   port: 8090
 camel:
   springboot:
     name: ServicesRest
 management:
+  address: 0.0.0.0
   port: 8081
 endpoints:
   enabled: false
@@ -12,6 +14,8 @@ endpoints:
 quickstart:
   generateOrderPeriod: 10s
   processOrderPeriod: 30s
+logging:
+  config: 'classpath:logback.xml'
 bca-backend:
   api:
     path: '/camel'
