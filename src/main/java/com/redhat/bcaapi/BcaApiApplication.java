@@ -1,8 +1,10 @@
 package com.redhat.bcaapi;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.MalformedJsonException;
 import org.apache.camel.CamelContext;
+import org.apache.camel.CamelExchangeException;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
@@ -50,16 +52,16 @@ public class BcaApiApplication {
     class RestApi extends RouteBuilder {
 
         @Override
-        public void configure() {
+        public void configure() throws Exception {
 
-            CamelContext context = new DefaultCamelContext();
+            //CamelContext context = new DefaultCamelContext();
 
             // General error handler
-            onException(Exception.class, MalformedJsonException.class)
-                .handled(true)
+            onException(RuntimeException.class, Exception.class)
+                .handled(true) // NOT send the exception back to the client (clients need a meaningful response)
                 // use HTTP status 500 when we had a server side error
                 .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(500))
-                .setBody(simple(" { messageId: ${id}, timestamp: \"${date:now:dd/MMM/yyyy:HH:mm:ss Z}\" description: \"Report this messageId for escalation\""))
+                .setBody(simple(" { \"messageId\": \"${id}\", \"timestamp\": \"${date:now:dd/MMM/yyyy:HH:mm:ss Z}\", \"description\": \"Report this messageId for escalation\" }"))
                 .log("messageId: ${id}, timestamp: \"${date:now:dd/MMM/yyyy:HH:mm:ss Z}\", message: \"${exception.message}\"\n ${exception.stacktrace}")
             .end();
 
@@ -220,35 +222,50 @@ public class BcaApiApplication {
             // API path: POST|PUT /or-trx-agreement
             // Backend path: POST|PUT /or-trx-agreement
             from("servlet:///or-trx-agreement")
-                .doTry()
-                    .choice()
-                    .when().simple("${header.CamelHttpMethod} == 'POST'")
+                .routeId("OR-TransactionAgreement-SaveOrUpdate")
+
+                .choice()
+                .when().simple("${header.CamelHttpMethod} == 'POST'")
+                    .doTry()
                         .process(new AgreementSaveRequestTransformers())
                         //Move HTTP query info to new exchange header name since all CamelHttp exchange header will be removed.
                         .setHeader("NewHttpQuery", simple("${header.CamelHttpQuery}"))
                         .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
                         .setHeader(Exchange.HTTP_METHOD, simple("POST"))
-                        .to("{{ORTransaction_AgreementSave_Endpoint}}?throwExceptionOnFailure=true")
-                    .when().simple("${header.CamelHttpMethod} == 'PUT'")
+                        .to("{{ORTransaction_AgreementSave_Endpoint}}")
+                    .endDoTry()
+                    .doCatch(HttpOperationFailedException.class)
+                        .choice()
+                            .when().simple("${exception.statusCode} == 404")
+                                .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
+                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(404))
+                                .setBody(simple("${exception.message}"))
+                            .otherwise()
+                                .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
+                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(500))
+                                .setBody(simple(""))
+                        .endChoice()
+                .when().simple("${header.CamelHttpMethod} == 'PUT'")
+                    .doTry()
                         .process(new AgreementUpdateRequestTransformers())
                         .setHeader("NewHttpQuery", simple("${header.CamelHttpQuery}"))
                         .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
                         .setHeader(Exchange.HTTP_METHOD, simple("PUT"))
-                        .to("{{ORTransaction_AgreementUpdate_Endpoint}}?throwExceptionOnFailure=true")
-                    .endChoice()
-                .endDoTry()
-                .doCatch(HttpOperationFailedException.class)
-                    .choice()
-                        .when().simple("${exception.statusCode} == 404")
-                            .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
-                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(404))
-                            .setBody(simple("${exception.message}"))
-                        .otherwise()
-                            .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
-                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(500))
-                            .setBody(simple(""))
-                    .endChoice()
-                .end();
+                        .to("{{ORTransaction_AgreementUpdate_Endpoint}}")
+                    .endDoTry()
+                    .doCatch(HttpOperationFailedException.class)
+                        .choice()
+                            .when().simple("${exception.statusCode} == 404")
+                                .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
+                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(404))
+                                .setBody(simple("${exception.message}"))
+                            .otherwise()
+                                .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
+                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(500))
+                                .setBody(simple(""))
+                        .endChoice()
+                 .end();
+
 
             // OR Transaction Agreement-Inquiry
             // API path: POST /or-trx-agreement/inquiry/0008?Status=03 <-- TODO: Ask BCA. It is weird API design because BranchCode and Status is duplicated (in URL and JSON message)
@@ -459,25 +476,24 @@ public class BcaApiApplication {
 
             // For testing only
             from("direct:backendSystem")
-                    .log("Request received.")
-                    .process(new JsonRequestTranformers())
-                    .doTry()
-                        .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
-                        .to("http://www.mocky.io/v2/5b0598473200000b2aebf991?throwExceptionOnFailure=true")
-                        .process(new JsonResponseTranformers("$.OutputSchema"))
-                    .endDoTry()
-                    .doCatch(HttpOperationFailedException.class)
-                        .choice()
-                            .when().simple("${exception.statusCode} == 404")
-                                .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
-                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(404))
-                                .setBody(simple("${exception.message}"))
-                            .otherwise()
-                                .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
-                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(500))
-                                .setBody(simple(""))
-                        .endChoice()
-                    .end();
+                .log("Request received.")
+                .process(e -> { logger.debug("Test Processor");})
+                .doTry()
+                    //.process(e -> {throw new RuntimeException();})
+                    .process(e -> {throw new JsonSyntaxException("Error test");})
+                .endDoTry()
+                .doCatch(HttpOperationFailedException.class)
+                    .choice()
+                        .when().simple("${exception.statusCode} == 404")
+                            .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
+                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(404))
+                            .setBody(simple("${exception.message}"))
+                        .otherwise()
+                            .log("Error calling backend, backend statusCode: ${exception.statusCode}, ${exception.message}\n ${exception.stacktrace}")
+                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(500))
+                            .setBody(simple(""))
+                    .endChoice()
+                .end();
 
             from("servlet:///health?matchOnUriPrefix=true").process(new Processor() {
                 public void process(Exchange exchange) throws Exception {
