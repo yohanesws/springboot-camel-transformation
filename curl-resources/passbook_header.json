@@ -1,0 +1,14 @@
+{
+	"BdsVersion": "380",
+	"MPPTransactionCode": "8008",
+	"AccountNumber": "0080000677",
+	"BranchCode": "0080",
+	"CashDrawer": "581",
+	"PassbookType": "1",
+	"UserID": "B080581T",
+	"SmallPassbookInformation": {
+		"OldSerialNumber": "",
+		"NewSerialNumber": "",
+		"ChangeBookReason": ""
+	}
+}

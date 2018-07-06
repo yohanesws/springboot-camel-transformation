@@ -83,3 +83,39 @@ curl -v  http://localhost:8090/camel/or-trx-agreement/detail/ABC123 \
 -H "X-BCA-ClientID : 3FE00D67763F443582A2E97F27E7E8E1"
 
 
+##HEADERS
+curl -v -X POST http://<HOST>//passbooks/headers \-H "X-BCA-ClientID: 3FE00D67763F443582A2E97F27E7E8E1"
+-d '{
+	"BdsVersion": "380",
+	"MPPTransactionCode": "8008",
+	"AccountNumber": "0080000677",
+	"BranchCode": "0080",
+	"CashDrawer": "581",
+	"PassbookType": "1",
+	"UserID": "B080581T",
+	"SmallPassbookInformation": {
+		"OldSerialNumber": "",
+		"NewSerialNumber": "",
+		"ChangeBookReason": ""
+	}
+}'
+
+
+##HEADERS
+curl -v -X POST http://localhost:8090/camel/passbooks/headers \
+-H "X-BCA-ClientID: 3FE00D67763F443582A2E97F27E7E8E1" \
+-H "Content-Type: application/json" \
+-d '{
+	"BdsVersion": "380",
+	"MPPTransactionCode": "8008",
+	"AccountNumber": "0080000677",
+	"BranchCode": "0080",
+	"CashDrawer": "581",
+	"PassbookType": "1",
+	"UserID": "B080581T",
+	"SmallPassbookInformation": {
+		"OldSerialNumber": "",
+		"NewSerialNumber": "",
+		"ChangeBookReason": ""
+	}
+}'
