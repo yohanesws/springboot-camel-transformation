@@ -36,6 +36,18 @@ public class Json2XmlReRequestTranformers implements org.apache.camel.Processor 
     // Map of XML NameSpace
     private Map<String, String> namespaceMap = null;
 
+    private Boolean soapMessage = false;
+
+    private String operationSchema;
+    private String operationSchemaReference;
+
+    private String soapPrefix = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:va=\"http://esb.bca.com/VA\">\n" +
+            "\t<soapenv:Header/>\n" +
+            "\t<soapenv:Body>";
+
+    private String soapSuffix = "</soapenv:Body>\n" +
+            "</soapenv:Envelope>";
+
     public Json2XmlReRequestTranformers() {
 
     }
@@ -43,6 +55,12 @@ public class Json2XmlReRequestTranformers implements org.apache.camel.Processor 
     public Json2XmlReRequestTranformers(String jsonPath, Map namespaceMap) {
         this.jsonPath = jsonPath;
         this.namespaceMap = namespaceMap;
+    }
+
+    public Json2XmlReRequestTranformers(Boolean soapMessage,String operationSchema, String operationSchemaReference) {
+        this.soapMessage =  soapMessage;
+        this.operationSchema = operationSchema;
+        this.operationSchemaReference = operationSchemaReference;
     }
 
 
@@ -84,6 +102,13 @@ public class Json2XmlReRequestTranformers implements org.apache.camel.Processor 
             // Set header and body
             String xmlString = XML.toString(jsonObject);
             logger.debug("Body transformed: " + xmlString);
+            if (soapMessage){
+                if(operationSchema!=null || operationSchema != ""){
+                    xmlString =  soapPrefix+"<"+operationSchema + " "+ operationSchemaReference+">"+xmlString+"</"+operationSchema+">"+soapSuffix;
+                }else{
+                    xmlString =  soapPrefix+xmlString+soapSuffix;
+                }
+            }
             exchange.getIn().setHeader(Exchange.CONTENT_TYPE, "application/xml;UTF-8");
             exchange.getIn().setBody(xmlString);
 

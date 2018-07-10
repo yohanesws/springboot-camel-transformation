@@ -317,13 +317,14 @@ class RestApiRoute extends RouteBuilder {
             // VA-Bill Presentment
             // API path: TODO: <- Ask BCA
             // Backend path: /VA/VAPortTypeBndPort
-            from("servlet:///VA/VAPortTypeBndPort")
-                .process(new Json2XmlReRequestTranformers())
+            from("servlet:///VA/billPresentment")
+                .process(new Json2XmlReRequestTranformers(true,"WL5:BillPresentmentRequest", "xmlns:WL5=\"http://esb.bca.com/VA\""))
                 .doTry()
                     .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
                     .setHeader("SOAPAction", constant("http://esb.bca.com/VA/BillPresentment"))
                     .log("try to call backend with header: ${headers} and body: ${body}")
                     .to("{{VA_BillPresentment_Endpoint}}?throwExceptionOnFailure=true")
+                    .convertBodyTo(String.class)
                     .log("respond from backend with header: ${headers} and body: ${body}")
                     .process(new Xml2JsonResponseTranformers(
                             "/soapenv:Envelope/soapenv:Body/va:BillPresentmentResponse/OutputSchema/*",
@@ -348,13 +349,14 @@ class RestApiRoute extends RouteBuilder {
             // VA-Inquiry Payment Details
             // API path: TODO: <- Ask BCA
             // Backend path: /VA/VAPortTypeBndPort
-            from("servlet:///VA/VAPortTypeBndPortZZZ")
-                .process(new Json2XmlReRequestTranformers())
+            from("servlet:///VA/inquiryPaymentDetail")
+                .process(new Json2XmlReRequestTranformers(true,"WL5:InquiryPaymentRequest", "xmlns:WL5=\"http://esb.bca.com/VA\""))
                 .doTry()
                     .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
                     .setHeader("SOAPAction", constant("http://esb.bca.com/VA/InquiryPayment"))
                     .log("try to call backend with header: ${headers} and body: ${body}")
                     .to("{{VA_InquiryPaymentDetail_Endpoint}}?throwExceptionOnFailure=true")
+                    .convertBodyTo(String.class)
                     .log("respond from backend with header: ${headers} and body: ${body}")
                     .process(new Xml2JsonResponseTranformers(
                             "/soapenv:Envelope/soapenv:Body/va:InquiryPaymentResponse/OutputSchema/*",
@@ -380,13 +382,14 @@ class RestApiRoute extends RouteBuilder {
             // VA-Payment Status
             // API path: TODO: <- Ask BCA
             // Backend path: /VA/VAPortTypeBndPort
-            from("servlet:///VA/VAPortTypeBndPortYYY")
-                .process(new Json2XmlReRequestTranformers())
+            from("servlet:///VA/inquiryPaymentStatus")
+                .process(new Json2XmlReRequestTranformers(true,"WL5:InquiryPaymentByBranchRequest", "xmlns:WL5=\"http://esb.bca.com/VA\""))
                 .doTry()
                     .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
                     .setHeader("SOAPAction", constant("http://esb.bca.com/VA/InquiryPaymentByBranch"))
                     .log("try to call backend with header: ${headers} and body: ${body}")
                     .to("{{VA_InquiryPaymentStatus_Endpoint}}?throwExceptionOnFailure=true")
+                    .convertBodyTo(String.class)
                     .log("respond from backend with header: ${headers} and body: ${body}")
                     .process(new Xml2JsonResponseTranformers(
                             "/soapenv:Envelope/soapenv:Body/va:InquiryPaymentByBranchResponse/OutputSchema/*",
@@ -411,16 +414,17 @@ class RestApiRoute extends RouteBuilder {
             // VA-Payment
             // API path: TODO: <- Ask BCA
             // Backend path: /VA/VAPortTypeBndPort
-            from("servlet:///VA/VAPortTypeBndPortXXX")
-                .process(new Json2XmlReRequestTranformers())
+            from("servlet:///VA/payment")
+                .process(new Json2XmlReRequestTranformers(true,"WL5:PaymentRequest", "xmlns:WL5=\"http://esb.bca.com/VA\""))
                 .doTry()
                     .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
                     .setHeader("SOAPAction", constant("http://esb.bca.com/VA/Payment"))
                     .log("try to call backend with header: ${headers} and body: ${body}")
                     .to("{{VA_Payment_Endpoint}}?throwExceptionOnFailure=true")
+                    .convertBodyTo(String.class)
                     .log("respond from backend with header: ${headers} and body: ${body}")
                     .process(new Xml2JsonResponseTranformers(
-                            "/soapenv:Envelope/soapenv:Body/WL5:PaymentRequest/OutputSchema/*",
+                            "/soapenv:Envelope/soapenv:Body/va:PaymentResponse/OutputSchema/*",
                             ImmutableMap.of(
                                     "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
                                     "va", "http://esb.bca.com/VA"
@@ -442,16 +446,17 @@ class RestApiRoute extends RouteBuilder {
             // VA-Cancel Payment
             // API path: TODO: <- Ask BCA
             // Backend path: /VA/VAPortTypeBndPort
-            from("servlet:///VA/VAPortTypeBndPortWWW")
-                .process(new Json2XmlReRequestTranformers())
+            from("servlet:///VA/cancelPayment")
+                .process(new Json2XmlReRequestTranformers(true,"WL5:CancelPaymentByBranchRequest", "xmlns:WL5=\"http://esb.bca.com/VA\""))
                 .doTry()
                     .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
                     .setHeader("SOAPAction", constant("http://esb.bca.com/VA/CancelPaymentByBranch"))
                     .log("try to call backend with header: ${headers} and body: ${body}")
                     .to("{{VA_CancelPayment_Enpoint}}?throwExceptionOnFailure=true")
+                    .convertBodyTo(String.class)
                     .log("respond from backend with header: ${headers} and body: ${body}")
                     .process(new Xml2JsonResponseTranformers(
-                            "/soapenv:Envelope/soapenv:Body/WL5:CancelPaymentByBranchRequest/OutputSchema/*",
+                            "/soapenv:Envelope/soapenv:Body/va:CancelPaymentByBranchResponse/OutputSchema/*",
                             ImmutableMap.of(
                                     "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
                                     "va", "http://esb.bca.com/VA"

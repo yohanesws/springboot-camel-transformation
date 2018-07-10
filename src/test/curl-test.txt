@@ -119,3 +119,14 @@ curl -v -X POST http://localhost:8090/camel/passbooks/headers \
 		"ChangeBookReason": ""
 	}
 }'
+
+curl -X POST -v -H "Content-Type: application/json" -d @curl-resources/vaBillPresentment.xml http://localhost:8090/camel/VA/billPresentment
+
+curl -X POST -v -H "Content-Type: application/json" -d @curl-resources/vaInquiryPaymentDetail.xml http://localhost:8090/camel/VA/inquiryPaymentDetail
+
+curl -X POST -v -H "Content-Type: application/json" -d @curl-resources/vaInquiryPaymentStatus.xml http://localhost:8090/camel/VA/inquiryPaymentStatus
+
+curl -X POST -v -H "Content-Type: application/json" -d @curl-resources/vaPayment.xml http://localhost:8090/camel/VA/payment
+
+ curl -X POST -v -H "Content-Type: application/json" -d @curl-resources/vaCancelPayment.xml http://localhost:8090/camel/VA/cancelPayment
+
