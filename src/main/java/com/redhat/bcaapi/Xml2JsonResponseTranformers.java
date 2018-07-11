@@ -68,7 +68,7 @@ public class Xml2JsonResponseTranformers implements org.apache.camel.Processor {
             logger.debug(header);
         }
 
-        if ( httpResponseCode == httpResponseCode.intValue() && contentType.contains("application/xml")) {
+        if ( httpResponseCode == httpResponseCode.intValue() && contentType.contains("xml")) {
 
             String xmlString = exchange.getIn().getBody(String.class);
             logger.debug("xml: \n" + xmlString);
