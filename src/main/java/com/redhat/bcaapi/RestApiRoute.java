@@ -51,6 +51,7 @@ class RestApiRoute extends RouteBuilder {
                     .convertBodyTo(String.class)
                     .log("try to call backend with header: ${headers} and body: ${body}")
                     .to("{{NewBranch_passbookHeaders_Endpoint}}?throwExceptionOnFailure=true")
+                    .convertBodyTo(String.class)
                     .log("respond from backend with header: ${headers} and body: ${body}")
                     .process(new JsonResponseTranformers("$.OutputSchema", false))
                 .endDoTry()
@@ -64,6 +65,7 @@ class RestApiRoute extends RouteBuilder {
                             .log("Error calling backend, backend statusCode: ${exception.statusCode}, headers:${exception.responseHeaders} and body: ${exception.responseBody} , ${exception.message}\n ${exception.stacktrace}")
 //                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(200))
                             .setHeader(Exchange.CONTENT_TYPE,constant("application/json"))
+                            .setBody().simple("${exception.responseBody}")
                             .process(new JsonResponseTranformers("$.ErrorSchema", false))
                     .endChoice()
                 .end();
