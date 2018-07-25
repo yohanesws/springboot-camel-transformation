@@ -63,7 +63,7 @@ class RestApiRoute extends RouteBuilder {
                             .setBody(simple("${exception.message}"))
                         .otherwise()
                             .log("Error calling backend, backend statusCode: ${exception.statusCode}, headers:${exception.responseHeaders} and body: ${exception.responseBody} , ${exception.message}\n ${exception.stacktrace}")
-//                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(200))
+                            .setHeader(Exchange.HTTP_RESPONSE_CODE, simple("${exception.statusCode}"))
                             .setHeader(Exchange.CONTENT_TYPE,constant("application/json"))
                             .setBody().simple("${exception.responseBody}")
                             .process(new JsonResponseTranformers("$.ErrorSchema", false))
