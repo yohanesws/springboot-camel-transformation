@@ -68,7 +68,7 @@ public class Xml2JsonResponseTranformers implements org.apache.camel.Processor {
             logger.debug(header);
         }
 
-        if ( httpResponseCode == httpResponseCode.intValue() && contentType.contains("xml")) {
+        if ( contentType.contains("xml")) {
 
             String xmlString = exchange.getIn().getBody(String.class);
             logger.debug("xml: \n" + xmlString);
@@ -99,6 +99,7 @@ public class Xml2JsonResponseTranformers implements org.apache.camel.Processor {
             String jsonString = XML.toJSONObject(newXml).toString();
             logger.debug("Body transformed: " + jsonString);
             exchange.getIn().setBody(jsonString);
+            exchange.getIn().setHeader(Exchange.CONTENT_TYPE,"application/json");
 
         }
     }

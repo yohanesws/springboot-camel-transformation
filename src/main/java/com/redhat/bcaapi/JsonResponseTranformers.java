@@ -57,7 +57,7 @@ public class JsonResponseTranformers implements org.apache.camel.Processor {
             logger.debug(header);
         }
 
-        if ( httpResponseCode == httpResponseCode.intValue() && contentType.contains("application/json") ) {
+        if (  contentType.contains("json") ) {
 
             Gson gson = new Gson();
             String jsonString = exchange.getIn().getBody(String.class);

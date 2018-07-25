@@ -43,6 +43,7 @@ class RestApiRoute extends RouteBuilder {
                 .log("messageId: ${id}, timestamp: \"${date:now:dd/MMM/yyyy:HH:mm:ss Z}\", message: \"${exception.message}\"\n ${exception.stacktrace}")
             .end();
 
+
             // FutureBranch-Passbooks Headers
             from("servlet:///passbooks/headers")
                 .doTry()
@@ -61,8 +62,9 @@ class RestApiRoute extends RouteBuilder {
                             .setBody(simple("${exception.message}"))
                         .otherwise()
                             .log("Error calling backend, backend statusCode: ${exception.statusCode}, headers:${exception.responseHeaders} and body: ${exception.responseBody} , ${exception.message}\n ${exception.stacktrace}")
-                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(500))
-                            .setBody(simple(""))
+//                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(200))
+                            .setHeader(Exchange.CONTENT_TYPE,constant("application/json"))
+                            .process(new JsonResponseTranformers("$.ErrorSchema", false))
                     .endChoice()
                 .end();
 
@@ -326,12 +328,24 @@ class RestApiRoute extends RouteBuilder {
                     .to("{{VA_BillPresentment_Endpoint}}?throwExceptionOnFailure=true")
                     .convertBodyTo(String.class)
                     .log("respond from backend with header: ${headers} and body: ${body}")
-                    .process(new Xml2JsonResponseTranformers(
-                            "/soapenv:Envelope/soapenv:Body/va:BillPresentmentResponse/OutputSchema/*",
-                            ImmutableMap.of(
-                                    "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
-                                    "va", "http://esb.bca.com/VA"
-                            )))
+                    .choice()
+                        .when().xpath("//ErrorSchema/ErrorCode = 'ESB-00-000'")
+                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(200))
+                            .process(new Xml2JsonResponseTranformers(
+                                    "/soapenv:Envelope/soapenv:Body/va:BillPresentmentResponse/OutputSchema/*",
+                                    ImmutableMap.of(
+                                            "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
+                                            "va", "http://esb.bca.com/VA"
+                                    )))
+                        .otherwise()
+                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(400))
+                            .process(new Xml2JsonResponseTranformers(
+                                    "/soapenv:Envelope/soapenv:Body/va:BillPresentmentResponse/ErrorSchema/*",
+                                    ImmutableMap.of(
+                                            "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
+                                            "va", "http://esb.bca.com/VA"
+                                    )))
+                    .endChoice()
                 .endDoTry()
                 .doCatch(HttpOperationFailedException.class)
                     .choice()
@@ -358,12 +372,24 @@ class RestApiRoute extends RouteBuilder {
                     .to("{{VA_InquiryPaymentDetail_Endpoint}}?throwExceptionOnFailure=true")
                     .convertBodyTo(String.class)
                     .log("respond from backend with header: ${headers} and body: ${body}")
-                    .process(new Xml2JsonResponseTranformers(
-                            "/soapenv:Envelope/soapenv:Body/va:InquiryPaymentResponse/OutputSchema/*",
-                            ImmutableMap.of(
-                                    "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
-                                    "va", "http://esb.bca.com/VA"
-                            )))
+                    .choice()
+                        .when().xpath("//ErrorSchema/ErrorCode = 'ESB-00-000'")
+                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(200))
+                            .process(new Xml2JsonResponseTranformers(
+                                    "/soapenv:Envelope/soapenv:Body/va:InquiryPaymentResponse/OutputSchema/*",
+                                    ImmutableMap.of(
+                                            "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
+                                            "va", "http://esb.bca.com/VA"
+                                    )))
+                        .otherwise()
+                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(400))
+                            .process(new Xml2JsonResponseTranformers(
+                                    "/soapenv:Envelope/soapenv:Body/va:InquiryPaymentResponse/ErrorSchema/*",
+                                    ImmutableMap.of(
+                                            "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
+                                            "va", "http://esb.bca.com/VA"
+                                    )))
+                    .endChoice()
                 .endDoTry()
                 .doCatch(HttpOperationFailedException.class)
                     .choice()
@@ -391,12 +417,30 @@ class RestApiRoute extends RouteBuilder {
                     .to("{{VA_InquiryPaymentStatus_Endpoint}}?throwExceptionOnFailure=true")
                     .convertBodyTo(String.class)
                     .log("respond from backend with header: ${headers} and body: ${body}")
-                    .process(new Xml2JsonResponseTranformers(
-                            "/soapenv:Envelope/soapenv:Body/va:InquiryPaymentByBranchResponse/OutputSchema/*",
-                            ImmutableMap.of(
-                                    "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
-                                    "va", "http://esb.bca.com/VA"
-                            )))
+//                    .process(new Xml2JsonResponseTranformers(
+//                            "/soapenv:Envelope/soapenv:Body/va:InquiryPaymentByBranchResponse/OutputSchema/*",
+//                            ImmutableMap.of(
+//                                    "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
+//                                    "va", "http://esb.bca.com/VA"
+//                            )))
+                    .choice()
+                        .when().xpath("//ErrorSchema/ErrorCode = 'ESB-00-000'")
+                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(200))
+                            .process(new Xml2JsonResponseTranformers(
+                                    "/soapenv:Envelope/soapenv:Body/va:InquiryPaymentByBranchResponse/OutputSchema/*",
+                                    ImmutableMap.of(
+                                            "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
+                                            "va", "http://esb.bca.com/VA"
+                                    )))
+                        .otherwise()
+                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(400))
+                            .process(new Xml2JsonResponseTranformers(
+                                    "/soapenv:Envelope/soapenv:Body/va:InquiryPaymentByBranchResponse/ErrorSchema/*",
+                                    ImmutableMap.of(
+                                            "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
+                                            "va", "http://esb.bca.com/VA"
+                                    )))
+                    .endChoice()
                 .endDoTry()
                 .doCatch(HttpOperationFailedException.class)
                     .choice()
@@ -423,12 +467,30 @@ class RestApiRoute extends RouteBuilder {
                     .to("{{VA_Payment_Endpoint}}?throwExceptionOnFailure=true")
                     .convertBodyTo(String.class)
                     .log("respond from backend with header: ${headers} and body: ${body}")
-                    .process(new Xml2JsonResponseTranformers(
-                            "/soapenv:Envelope/soapenv:Body/va:PaymentResponse/OutputSchema/*",
-                            ImmutableMap.of(
-                                    "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
-                                    "va", "http://esb.bca.com/VA"
-                            )))
+//                    .process(new Xml2JsonResponseTranformers(
+//                            "/soapenv:Envelope/soapenv:Body/va:PaymentResponse/OutputSchema/*",
+//                            ImmutableMap.of(
+//                                    "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
+//                                    "va", "http://esb.bca.com/VA"
+//                            )))
+                    .choice()
+                        .when().xpath("//ErrorSchema/ErrorCode = 'ESB-00-000'")
+                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(200))
+                            .process(new Xml2JsonResponseTranformers(
+                                    "/soapenv:Envelope/soapenv:Body/va:PaymentResponse/OutputSchema/*",
+                                    ImmutableMap.of(
+                                            "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
+                                            "va", "http://esb.bca.com/VA"
+                                    )))
+                        .otherwise()
+                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(400))
+                            .process(new Xml2JsonResponseTranformers(
+                                    "/soapenv:Envelope/soapenv:Body/va:PaymentResponse/ErrorSchema/*",
+                                    ImmutableMap.of(
+                                            "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
+                                            "va", "http://esb.bca.com/VA"
+                                    )))
+                    .endChoice()
                 .endDoTry()
                 .doCatch(HttpOperationFailedException.class)
                     .choice()
@@ -455,12 +517,30 @@ class RestApiRoute extends RouteBuilder {
                     .to("{{VA_CancelPayment_Enpoint}}?throwExceptionOnFailure=true")
                     .convertBodyTo(String.class)
                     .log("respond from backend with header: ${headers} and body: ${body}")
-                    .process(new Xml2JsonResponseTranformers(
-                            "/soapenv:Envelope/soapenv:Body/va:CancelPaymentByBranchResponse/OutputSchema/*",
-                            ImmutableMap.of(
-                                    "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
-                                    "va", "http://esb.bca.com/VA"
-                            )))
+//                    .process(new Xml2JsonResponseTranformers(
+//                            "/soapenv:Envelope/soapenv:Body/va:CancelPaymentByBranchResponse/OutputSchema/*",
+//                            ImmutableMap.of(
+//                                    "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
+//                                    "va", "http://esb.bca.com/VA"
+//                            )))
+                    .choice()
+                        .when().xpath("//ErrorSchema/ErrorCode = 'ESB-00-000'")
+                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(200))
+                            .process(new Xml2JsonResponseTranformers(
+                                    "/soapenv:Envelope/soapenv:Body/va:CancelPaymentByBranchResponse/OutputSchema/*",
+                                    ImmutableMap.of(
+                                            "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
+                                            "va", "http://esb.bca.com/VA"
+                                    )))
+                        .otherwise()
+                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(400))
+                            .process(new Xml2JsonResponseTranformers(
+                                    "/soapenv:Envelope/soapenv:Body/va:CancelPaymentByBranchResponse/ErrorSchema/*",
+                                    ImmutableMap.of(
+                                            "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
+                                            "va", "http://esb.bca.com/VA"
+                                    )))
+                    .endChoice()
                 .endDoTry()
                 .doCatch(HttpOperationFailedException.class)
                     .choice()

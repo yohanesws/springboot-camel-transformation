@@ -103,7 +103,7 @@ curl -v -X POST http://<HOST>//passbooks/headers \-H "X-BCA-ClientID: 3FE00D6776
 
 ##HEADERS
 curl -v -X POST http://localhost:8090/camel/passbooks/headers \
--H "X-BCA-ClientID: 3FE00D67763F443582A2E97F27E7E8E1" \
+-H "X-BCA-ClientID: 6BAD66323D0F4EECE05400144FFA3B5D" \
 -H "Content-Type: application/json" \
 -d '{
 	"BdsVersion": "380",

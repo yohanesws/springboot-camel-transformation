@@ -55,7 +55,7 @@ public class JsonRequestTranformers implements org.apache.camel.Processor {
         }
 
         // We will only process HTTP Request with body contain JSON message
-        if ( "POST".equals(httpMethod) && contentType.contains("application/json") ) {
+        if ( "POST".equals(httpMethod) && contentType.contains("json") ) {
 
             Gson gson = new Gson();
             String jsonString = exchange.getIn().getBody(String.class);
