@@ -49,6 +49,7 @@ class RestApiRoute extends RouteBuilder {
                 .doTry()
                     .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
                     .convertBodyTo(String.class)
+                    .setHeader("ClientID",simple("$.headers.X-BCA-CLIENTID"))
                     .log("try to call backend with header: ${headers} and body: ${body}")
                     .to("{{NewBranch_passbookHeaders_Endpoint}}?throwExceptionOnFailure=true")
                     .convertBodyTo(String.class)
