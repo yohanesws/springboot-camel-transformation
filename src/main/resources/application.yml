@@ -4,6 +4,11 @@ server:
 camel:
   springboot:
     name: ServicesRest
+#    camel.component.servlet.mapping.context-path
+     #
+     #Context path used by the servlet component for automatic mapping.
+     #
+     #/camel/*
   component:
     servlet:
       mapping:
