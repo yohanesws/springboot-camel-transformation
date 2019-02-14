@@ -2,22 +2,12 @@ package com.redhat.bcaapi;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonSyntaxException;
-import com.google.gson.stream.MalformedJsonException;
-import org.apache.camel.CamelContext;
-import org.apache.camel.CamelExchangeException;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.component.servlet.CamelHttpTransportServlet;
 import org.apache.camel.http.common.HttpOperationFailedException;
-import org.apache.camel.impl.DefaultCamelContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.web.servlet.ServletRegistrationBean;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletRequest;
@@ -318,6 +308,48 @@ class RestApiRoute extends RouteBuilder {
                     .endChoice()
                 .end();
 
+            from("servlet:///VA/billPresentment").setHeader("SOAPAction", constant("http://esb.bca.com/VA/BillPresentment"))
+                    .to("direct:va");
+
+            from("direct:va")
+                    .process(new Json2XmlReRequestTranformers(true, "WL5:BillPresentmentRequest", "xmlns:WL5=\"http://esb.bca.com/VA\""))
+                    .doTry()
+                    .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
+                    .log("try to call backend with header: ${headers} and body: ${body}")
+                    .to("{{VA_BillPresentment_Endpoint}}?throwExceptionOnFailure=true")
+                    .convertBodyTo(String.class)
+                    .log("respond from backend with header: ${headers} and body: ${body}")
+                    .choice()
+                    .when().xpath("//ErrorSchema/ErrorCode = 'ESB-00-000'")
+                    .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(200))
+                    .process(new Xml2JsonResponseTranformers(
+                            "/soapenv:Envelope/soapenv:Body/va:BillPresentmentResponse/OutputSchema/*",
+                            ImmutableMap.of(
+                                    "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
+                                    "va", "http://esb.bca.com/VA"
+                            )))
+                    .otherwise()
+                    .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(400))
+                    .process(new Xml2JsonResponseTranformers(
+                            "/soapenv:Envelope/soapenv:Body/va:BillPresentmentResponse/ErrorSchema/*",
+                            ImmutableMap.of(
+                                    "soapenv", "http://schemas.xmlsoap.org/soap/envelope/",
+                                    "va", "http://esb.bca.com/VA"
+                            )))
+                    .endChoice()
+                    .endDoTry()
+                    .doCatch(HttpOperationFailedException.class)
+                    .choice()
+                    .when().simple("${exception.statusCode} == 404")
+                    .log("Error calling backend, backend statusCode: ${exception.statusCode}, headers:${exception.responseHeaders} and body: ${exception.responseBody} , ${exception.message}\n ${exception.stacktrace}")
+                    .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(404))
+                    .setBody(simple("${exception.message}"))
+                    .otherwise()
+                    .log("Error calling backend, backend statusCode: ${exception.statusCode}, headers:${exception.responseHeaders} and body: ${exception.responseBody} , ${exception.message}\n ${exception.stacktrace}")
+                    .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(500))
+                    .setBody(simple(""))
+                    .endChoice()
+                    .end();
 
             // VA-Bill Presentment
             // API path: TODO: <- Ask BCA
@@ -326,7 +358,7 @@ class RestApiRoute extends RouteBuilder {
                 .process(new Json2XmlReRequestTranformers(true,"WL5:BillPresentmentRequest", "xmlns:WL5=\"http://esb.bca.com/VA\""))
                 .doTry()
                     .removeHeaders("CamelHttp*") // similar to adding param bridgeEndpoint=true in uri
-                    .setHeader("SOAPAction", constant("http://esb.bca.com/VA/BillPresentment"))
+                    .setHeader("SOAPAction", constant(""))
                     .log("try to call backend with header: ${headers} and body: ${body}")
                     .to("{{VA_BillPresentment_Endpoint}}?throwExceptionOnFailure=true")
                     .convertBodyTo(String.class)
@@ -584,4 +616,9 @@ class RestApiRoute extends RouteBuilder {
                 .end();
 
         }
+        String test = "---\n" +
+                "gitrepo: \"ssh://svrtfs.pelindo.co.id:22/tfs/Middleware/Middleware/_git/p3-vdata\"\n" +
+                "\n" +
+                "deploylist:\n" +
+                "  - VDB/P3_VIEWS.vdb";
     }
